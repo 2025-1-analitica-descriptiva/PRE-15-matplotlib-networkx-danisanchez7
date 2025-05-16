@@ -1,3 +1,4 @@
+# pylint: disable=C0103
 """Taller Presencial Evaluable"""
 
 import os
@@ -20,6 +21,7 @@ def load_affiliations():
         index_col=None,
     )[["Affiliations"]]
     return dataframe
+
 
 def remove_na_rows(affiliations):
     """Elimina las filas con valores nulos en la columna 'Affiliations'"""
@@ -47,6 +49,7 @@ def create_countries_column(affiliations):
     affiliations["countries"] = affiliations["countries"].str.join(", ")
 
     return affiliations
+
 
 def count_country_frequency(affiliations):
     """Cuenta la frecuencia de cada país en la columna 'countries'"""
@@ -106,6 +109,35 @@ def compute_co_occurrences(affiliations, most_frequent_countries):
     return co_occurrences
 
 
+def plot_country_collaboration(countries, co_occurrences):
+    """Grafica la red de co-occurrencias."""
+
+    G = nx.Graph()
+
+    for _, row in co_occurrences.iterrows():
+        G.add_edge(row["node_a"], row["node_b"], weight=row["size"])
+
+    pos = nx.spring_layout(G)
+
+    countries_list = list(G)
+    node_size = countries[countries_list].values
+
+    nx.draw(
+        G,
+        pos,
+        with_labels=False,
+        node_size=node_size,
+        node_color="grey",
+        edge_color="lightgrey",
+        font_size=8,
+        alpha=0.4,
+    )
+
+    for country, (x, y) in pos.items():
+        # x, y = pos[country]
+        plt.text(x, y, country, fontsize=7, ha="center", va="center")
+
+    plt.savefig("files/network.png")
 
 def make_plot(n_countries):
     """Función principal"""
@@ -124,31 +156,8 @@ def make_plot(n_countries):
         affiliations,
         most_frequent_countries,
     )
+    plot_country_collaboration(most_frequent_countries, co_occurrences)
 
-    # Create a graph
-    G = nx.from_pandas_edgelist(
-        co_occurrences,
-        source="node_a",
-        target="node_b",
-        edge_attr="size",
-        create_using=nx.Graph(),
-    )
-
-    # Draw the graph
-    plt.figure(figsize=(20, 20))
-    pos = nx.spring_layout(G, k=0.5, iterations=20)
-    nx.draw(
-        G,
-        pos,
-        with_labels=True,
-        node_size=1000,
-        node_color="lightblue",
-        font_size=10,
-        font_weight="bold",
-        edge_color="gray",
-    )
-    plt.title("Co-occurrences of countries")
-    plt.savefig("files/network.png")
 
 if __name__ == "__main__":
     make_plot(n_countries=20)
